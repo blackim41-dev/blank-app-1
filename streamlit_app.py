@@ -279,7 +279,7 @@ if menu == "顧客・来店入力":
             if k.startswith("input_") and k not in (
                 "input_name","input_nick","input_addr","input_tel","input_birth",
                 "input_job","input_like","input_dislike","input_smoke","input_brand",
-                "input_first_visit","input_intro_name","input_pair_name","memo_cus"                
+                "input_first_visit","input_intro_name","input_pair_name","input_memo_cus"                
             ):
                 del st.session_state[k]
 
@@ -483,6 +483,8 @@ if menu == "顧客・来店入力":
     # =====================
     # 来店情報の保存
     # =====================
+            #if save_visit:
+            #    cid = st.session_state.get("current_customer_id", "")
     if save_visit:
         cid = st.session_state.get("current_customer_id")
 
@@ -496,9 +498,9 @@ if menu == "顧客・来店入力":
             vid = st.session_state.get("selected_visit_id")
 
         if not vid:
-            st.error("編集する来店履歴が選択されていません")
+            st.error("編集する来店履歴が特定できません")
             st.stop()
-    
+   
         payload = {
             "mode": "visit_only",
             "来店履歴_ID": vid,
@@ -526,9 +528,13 @@ if menu == "顧客・来店入力":
         st.session_state.pop("visit_edit_select", None)
 
         # 来店保存後
-        st.session_state.after_visit_save = True
+        if visit_mode == "新規来店":
+            st.session_state.after_visit_save = True
+
         st.success("来店情報を保存しました")
-        st.rerun()
+        if visit_mode == "新規来店":
+            st.rerun()
+
         
         # --- 日付カラムを文字列に変換 ---
         for col in ["生年月日", "初回来店日"]:
