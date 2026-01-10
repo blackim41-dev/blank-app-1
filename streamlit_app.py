@@ -105,7 +105,7 @@ CUSTOMER_STATE_MAP = {
     "input_nick": ("ニックネーム", ""),
     "input_addr": ("住所", ""),
     "input_tel": ("電話番号", ""),
-    "input_birth": ("生年月日",""),
+    "input_birth": ("生年月日",date(2001,1,1)),
     "input_job": ("勤務先・業種", ""),
     "input_smoke": ("タバコ_YN", False),
     "input_brand": ("タバコ_銘柄", ""),
