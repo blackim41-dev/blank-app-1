@@ -488,9 +488,9 @@ if menu == "顧客・来店入力":
     if save_visit:
         cid = st.session_state.get("current_customer_id")
 
-    if not cid:
-        st.error("顧客が確定していません")
-        st.stop()
+        if not cid:
+            st.error("顧客が確定していません")
+            st.stop()
 
         if visit_mode == "新規来店":
             vid = next_id(visit_df, "来店履歴_ID", "V")
