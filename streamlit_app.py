@@ -436,12 +436,18 @@ if menu == "顧客・来店入力":
     # =====================
     # 顧客情報の保存
     # =====================
+            #if save_customer:
+            #    if customer_mode == "新規顧客":
+            #        cid = next_id(customer_df, "顧客_ID", "C")
+            #        st.session_state.current_customer_id = cid
+            #    else:
+            #        cid = st.session_state.get("current_customer_id", "")
     if save_customer:
-        if customer_mode == "新規顧客":
-            cid = next_id(customer_df, "顧客_ID", "C")
-            st.session_state.current_customer_id = cid
-        else:
-            cid = st.session_state.get("current_customer_id", "")
+        cid = st.session_state.get("current_customer_id")
+
+        if not cid:
+            st.error("顧客IDが取得できません")
+            st.stop()
 
         payload = {
             "mode": "customer_only",
@@ -469,14 +475,22 @@ if menu == "顧客・来店入力":
         st.cache_data.clear()
         customer_df, visit_df = load_data()
             
+        st.session_state.current_customer_id = cid
         st.session_state.loaded_customer_id = cid
+
         st.success("顧客情報を保存しました")
 
     # =====================
     # 来店情報の保存
     # =====================
+            #if save_visit:
+            #    cid = st.session_state.get("current_customer_id", "")
     if save_visit:
-        cid = st.session_state.get("current_customer_id", "")
+        cid = st.session_state.get("current_customer_id")
+
+    if not cid:
+        st.error("顧客が確定していません")
+        st.stop()
 
         if visit_mode == "新規来店":
             vid = next_id(visit_df, "来店履歴_ID", "V")
