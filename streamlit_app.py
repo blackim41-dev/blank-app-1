@@ -105,7 +105,7 @@ CUSTOMER_STATE_MAP = {
     "input_nick": ("ニックネーム", ""),
     "input_addr": ("住所", ""),
     "input_tel": ("電話番号", ""),
-    "input_birth": ("生年月日", date.today()),
+    "input_birth": ("生年月日",""),
     "input_job": ("勤務先・業種", ""),
     "input_smoke": ("タバコ_YN", False),
     "input_brand": ("タバコ_銘柄", ""),
@@ -279,7 +279,7 @@ if menu == "顧客・来店入力":
             if k.startswith("input_") and k not in (
                 "input_name","input_nick","input_addr","input_tel","input_birth",
                 "input_job","input_like","input_dislike","input_smoke","input_brand",
-                "input_first_visit","input_intro_name","input_pair_name","memo_cus"                
+                "input_first_visit","input_intro_name","input_pair_name","input_memo_cus"                
             ):
                 del st.session_state[k]
 
@@ -436,12 +436,6 @@ if menu == "顧客・来店入力":
     # =====================
     # 顧客情報の保存
     # =====================
-            #if save_customer:
-            #    if customer_mode == "新規顧客":
-            #        cid = next_id(customer_df, "顧客_ID", "C")
-            #        st.session_state.current_customer_id = cid
-            #    else:
-            #        cid = st.session_state.get("current_customer_id", "")
     if save_customer:
         cid = st.session_state.get("current_customer_id")
 
@@ -483,8 +477,6 @@ if menu == "顧客・来店入力":
     # =====================
     # 来店情報の保存
     # =====================
-            #if save_visit:
-            #    cid = st.session_state.get("current_customer_id", "")
     if save_visit:
         cid = st.session_state.get("current_customer_id")
 
