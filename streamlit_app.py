@@ -152,7 +152,7 @@ def init_state_from_row(state_map, row):
 # サイドバー
 # =====================
 menu = st.sidebar.radio(
-    "メニュー",["顧客情報入力","来店情報入力", "顧客別来店履歴", "日付別来店一覧", "売上分析"])
+    "メニュー",["顧客情報入力","来店情報入力", "顧客別来店履歴", "日付別来店一覧", "売上分析","未入金一覧"])
 
 # ★ メニュー切替を検知して初期化
 if "prev_menu" not in st.session_state:
@@ -659,3 +659,22 @@ elif menu == "売上分析":
         st.dataframe(staff_sales[staff_sales["担当_氏名"] == selected_staff])
     else:
         st.info("担当者を選択してください")
+
+# =====================
+# 未入金一覧
+# =====================
+elif menu == "未入金一覧":
+    st.header("未入金一覧")
+
+    # ★① データ準備
+    df = visit_df.copy()
+    df["領収日"] = pd.to_datetime(df["領収日"]).dt.date
+
+    # ★② 未入金日一覧（存在しない日付のみ）
+    date_list = sorted(df["領収日"].dropna().unique())
+
+    # ★③ 表示ラベル
+    selected_date = date_list[date_labels.index(selected_label) - 1]
+
+    # ★⑥ 領収日一覧表示
+    st.dataframe(df[df["領収日"] == selected_date].sort_values("来店履歴_ID"))
