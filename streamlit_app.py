@@ -17,7 +17,7 @@ def load_data():
 
     VISIT_COLUMNS = ["来店履歴_ID","顧客_ID","来店日","祝日前_YN",
                     "延長回数","キープ銘柄","担当_氏名","同伴_氏名",
-                    "同時来店_氏名","イベント名","売上金額","メモ_来店"]
+                    "同時来店_氏名","イベント名","メモ_来店","売上金額","領収日"]
 
     # --- GAS から取得 ---
     res = requests.get(GAS_GET_URL, timeout=30)
@@ -26,6 +26,7 @@ def load_data():
 
     customer_df = pd.DataFrame(data.get("customer", []))
     visit_df = pd.DataFrame(data.get("visit", []))
+    receipt_df = pd.DataFrame(data.get("visit", []))
 
     # --- 空でも列を保証 ---
     if customer_df.empty:
@@ -34,24 +35,27 @@ def load_data():
     if visit_df.empty:
         visit_df = pd.DataFrame(columns=VISIT_COLUMNS)
 
-    return customer_df, visit_df
+    if receipt_df.empty:
+        receipt_df = pd.DataFrame(columns=VISIT_COLUMNS)
+
+    return customer_df, visit_df, receipt_df
 
 # =====================
 # DataFrame を読み込む
 # =====================
-customer_df, visit_df = load_data()
+customer_df, visit_df, receipt_df = load_data()
 
 # ★ 日付列だけ明示的に None に統一
 customer_df["初回来店日"] = customer_df["初回来店日"].where(customer_df["初回来店日"].notna(), None)
-
 visit_df["来店日"] = visit_df["来店日"].where(visit_df["来店日"].notna(), None)
+receipt_df["領収日"] = receipt_df["領収日"].where(receipt_df["領収日"].notna(), None)
 
 # --- customer ---
 text_cols = customer_df.columns.difference(["生年月日", "初回来店日"])
 customer_df[text_cols] = customer_df[text_cols].fillna("")
 
 # --- visit ---
-text_cols_visit = visit_df.columns.difference(["来店日"])
+text_cols_visit = visit_df.columns.difference(["来店日","領収日"])
 visit_df[text_cols_visit] = visit_df[text_cols_visit].fillna("")
 
 # =====================
@@ -83,8 +87,6 @@ def safe_date(v):
             return pd.to_datetime(v).date()
         except:
             return date.today()
-
-    return date.today()
 
 def safe_bool(v):
     return str(v).lower() in ("true", "1", "yes")
@@ -126,8 +128,9 @@ VISIT_STATE_MAP = {
     "input_accompany": ("同伴_氏名", ""),
     "input_same": ("同時来店_氏名", ""),
     "input_event": ("イベント名", ""),
-    "input_uri": ("売上金額", 0),
     "input_memo_vis": ("メモ_来店", ""),
+    "input_uri": ("売上金額", 0),
+    "input_receipt_date": ("領収日", date(1900,1,1)),
 }
 
 def init_state_from_row(state_map, row):
@@ -148,13 +151,10 @@ def init_state_from_row(state_map, row):
 # =====================
 # サイドバー
 # =====================
-menu = st.sidebar.radio("メニュー",["顧客・来店入力", "顧客別来店履歴", "日付別来店一覧", "売上分析"])
+menu = st.sidebar.radio(
+    "メニュー",["顧客情報入力","来店情報入力", "顧客別来店履歴", "日付別来店一覧", "売上分析"])
 
 # ★ メニュー切替を検知して初期化
-if "prev_menu" not in st.session_state:
-    st.session_state.prev_menu = menu
-
-# 初期化
 if "prev_menu" not in st.session_state:
     st.session_state.prev_menu = menu
 
@@ -163,7 +163,8 @@ menu_changed = st.session_state.prev_menu != menu
 
 if menu_changed:
     # 状態リセット
-    st.session_state.pop("loaded_customer_id", None)
+    if menu =="顧客情報入力":
+        st.session_state.pop("loaded_customer_id", None)
     st.session_state.pop("selected_visit_id", None)
 
     for k in ["sales_daily_select", "sales_month_select", "sales_staff_select"]:
@@ -176,10 +177,10 @@ if menu_changed:
     st.session_state.prev_menu = menu
 
 # =====================
-# 顧客・来店入力
+# 顧客情報入力
 # =====================
-if menu == "顧客・来店入力":
-    st.header("顧客・来店入力")
+if menu == "顧客情報入力":
+    st.header("顧客情報入力")
 
     # ★ 顧客IDは必ず session_state から取得（未選択時は ""）
     cid = st.session_state.get("current_customer_id", "")
@@ -188,39 +189,12 @@ if menu == "顧客・来店入力":
     if "selected_customer_name" not in st.session_state:
         st.session_state.selected_customer_name = "（未選択）"
 
-    # --- ①visit_mode の初期化（radioより前！）---
-    if "visit_mode" not in st.session_state:
-        st.session_state.visit_mode = "新規来店"
-
-    # --- ②顧客区分（customer_mode） ---
+    # --- 顧客区分（customer_mode） ---
     customer_mode = st.radio("顧客区分", ["既存顧客", "新規顧客"],index=1)  #← 0=既存顧客 / 1=新規顧客
 
-    # ★★★ radio を描画する前で制御 ★★★
-    if st.session_state.get("after_visit_save"):
-        st.session_state.visit_mode = "新規来店"
-        st.session_state.pop("after_visit_save", None)
-
-    # --- visit_mode 初期化（radio より前）---
-    if "visit_mode" not in st.session_state:
-        st.session_state.visit_mode = "新規来店"
-
-    # 顧客区分が変わったら強制リセット（← ここはOK）
+    # 顧客区分が変わったら強制リセット
     if "prev_customer_mode" not in st.session_state:
         st.session_state.prev_customer_mode = customer_mode
-
-    if st.session_state.prev_customer_mode != customer_mode:
-        st.session_state.visit_mode = "新規来店"
-        st.session_state.prev_customer_mode = customer_mode
-
-    # radio を 1回だけ描画
-    if customer_mode == "新規顧客":
-        visit_mode = "新規来店"
-    else:
-        visit_mode = st.radio(
-            "来店入力モード",
-            ["新規来店", "既存来店履歴を編集"],
-            key="visit_mode"
-        )
 
     if customer_mode == "既存顧客" and customer_df.empty:
         st.info("先に新規顧客を登録してください")
@@ -246,13 +220,9 @@ if menu == "顧客・来店入力":
             st.session_state.current_customer_id = cid     
 
     # ★ 顧客切替フラグ
-    if (
-        cid
-        and st.session_state.get("loaded_customer_id") != cid
-        and customer_mode == "既存顧客"
-    ):
+    if (cid and st.session_state.get("loaded_customer_id") != cid
+            and customer_mode == "既存顧客"):
         st.session_state.loaded_customer_id = cid
-        # rerun しない or 最小限
 
         # ---- 顧客情報を一括セット ----
         st.session_state.update({
@@ -283,32 +253,16 @@ if menu == "顧客・来店入力":
             ):
                 del st.session_state[k]
 
-        # 来店初期値
-        st.session_state.update({
-            "input_visit_date": date.today(),
-            "input_holiday": False,
-            "input_ext": 0,
-            "input_keep": "",
-            "input_staff": "",
-            "input_accompany": "",
-            "input_same": "",
-            "input_event": "",
-            "input_uri": 0,
-            "memo_vis":""
-        })
-
         if st.session_state.get("customer_loaded"):
             del st.session_state["customer_loaded"]
             st.rerun()
 
-#        # ★ 顧客IDは session_state から取得
-#        cid = st.session_state.get("current_customer_id", "")
+        # ★ 顧客IDは session_state から取得
+        cid = st.session_state.get("current_customer_id", "")
 
     # =====================
     # 顧客情報（事前定義）
     # =====================
-    st.subheader("顧客情報---------------------")
-
     if customer_mode == "新規顧客":
         init_state_from_row(CUSTOMER_STATE_MAP, {})
         cid = next_id(customer_df, "顧客_ID", "C")
@@ -350,24 +304,112 @@ if menu == "顧客・来店入力":
             )
             intro = st.text_input("紹介者_氏名", key="input_intro_name")
             pair = st.text_input("合番_氏名", key="input_pair_name")
-            memocus = st.text_input("メモ_顧客", key="input_memo_cus")
+            memo_cus = st.text_input("メモ_顧客", key="input_memo_cus")
 
         save_customer = st.form_submit_button("顧客情報を保存")
+
+    def date_to_str(d):
+        if isinstance(d, date):
+            return d.strftime("%Y-%m-%d")
+        return ""
        
+    # =====================
+    # 顧客情報の保存
+    # =====================
+    if save_customer:
+        if customer_mode == "新規顧客":
+            cid = next_id(customer_df, "顧客_ID", "C")
+            st.session_state.current_customer_id = cid
+        else:
+            cid = st.session_state.get("current_customer_id", "")
+
+        payload = {
+            "mode": "customer_only",
+            "顧客_ID": cid,
+            "氏名": name,
+            "ニックネーム": nick,
+            "住所": addr,
+            "電話番号": tel,
+            "生年月日": date_to_str(birth),
+            "勤務先・業種": work,
+            "タバコ_YN": smoke,
+            "タバコ_銘柄": brand,
+            "好き": like,
+            "苦手": dislike,
+            "初回来店日": date_to_str(first),
+            "紹介者_氏名": intro,
+            "合番_氏名": pair,
+            "メモ_顧客": memo_cus
+        }
+
+        with st.spinner("保存中です…"):
+            requests.post(GAS_POST_URL, json=payload, timeout=30)
+
+        # --- 日付カラムを文字列に変換 ---
+        for col in ["生年月日", "初回来店日"]:
+            if col in customer_df.columns:
+                customer_df[col] = customer_df[col].astype(str)
+
+        # ★ ここで必ずキャッシュ破棄＋再読込
+        st.cache_data.clear()
+        customer_df = load_data()
+            
+        st.session_state.loaded_customer_id = cid
+        st.success("顧客情報を保存しました")
+
+# =====================
+# 来店情報入力
+# =====================
+if menu == "来店情報入力":
+    st.header("来店情報入力")
+
+    # ★ 顧客IDは必ず session_state から取得（未選択時は ""）
+    cid = st.session_state.get("current_customer_id", "")    
+    
+    # --- visit_mode の初期化（radioより前！）---
+    if "visit_mode" not in st.session_state:
+        st.session_state.visit_mode = "新規来店"        
+
+    # ★★★ radio を描画する前で制御 ★★★
+    if st.session_state.get("after_visit_save"):
+        st.session_state.visit_mode = "新規来店"
+        st.session_state.pop("after_visit_save", None)
+
+    # --- 来店入力モード（visit_mode） ---
+    visit_mode = st.radio("来店入力モード",["新規来店", "既存来店履歴を編集"],
+            index=0,key="visit_mode")  #← 0=新規来店 / 1=既存来店履歴を編集
+
+    search_name = st.text_input("氏名検索（部分一致）", "")
+
+    if search_name:
+        filtered_df = customer_df[customer_df["氏名"].str.contains(search_name, na=False)]
+    else:
+        filtered_df = customer_df
+
+    name_list = ["（未選択）"] + sorted(filtered_df["氏名"].unique())
+
+    selected_name = st.selectbox("氏名で選択",name_list,key="input_selected_customer_name")
+
+    if selected_name != "（未選択）":
+        row = customer_df[customer_df["氏名"] == selected_name].iloc[0].to_dict()
+        cid = row["顧客_ID"]
+        st.session_state.current_customer_id = cid     
+
+    # ★ 顧客IDは session_state から取得
+    cid = st.session_state.get("current_customer_id", "")
+ 
     # =====================
     # 来店情報（事前定義）
     # =====================
-    st.subheader("来店情報---------------------")
-
     # --- visit_row 初期化 ---
     selected_visit_id = None
     visit_row = {}
 
     # --- 新規来店 初期化 ---
-    if (
-        visit_mode == "新規来店"
+    if (visit_mode == "新規来店"
         and st.session_state.get("visit_initialized_for") != cid
     ):
+        init_state_from_row(CUSTOMER_STATE_MAP, {})
         init_state_from_row(VISIT_STATE_MAP, {})
         st.session_state.visit_initialized_for = cid
 
@@ -410,9 +452,9 @@ if menu == "顧客・来店入力":
                 st.session_state.pop("visit_initialized", None)
 
     with st.form("visit_form"):
-        col3, col4 = st.columns(2)
+        col1, col2 = st.columns(2)
 
-        with col3:
+        with col1:
             visit_date = st.date_input("来店日", key="input_visit_date")
             holiday = st.checkbox("祝日前", key="input_holiday")
             ext = st.number_input("延長回数", min_value=0, max_value=10, key="input_ext")
@@ -420,11 +462,12 @@ if menu == "顧客・来店入力":
             staff = st.text_input("担当_氏名", key="input_staff")
             accompany = st.text_input("同伴_氏名", key="input_accompany")
 
-        with col4:
+        with col2:
             same = st.text_input("同時来店_氏名", key="input_same")
             event = st.text_input("イベント名", key="input_event")
-            sales = st.number_input("売上金額", min_value=0, step=1000, key="input_uri")
             memovis = st.text_input("メモ_来店", key="input_memo_vis")
+            sales = st.number_input("売上金額", min_value=0, step=1000, key="input_uri")
+            receipt = st.date_input("領収日", key="input_receipt_date")
 
         save_visit = st.form_submit_button("来店情報を保存")
                     
@@ -434,63 +477,10 @@ if menu == "顧客・来店入力":
         return ""
     
     # =====================
-    # 顧客情報の保存
-    # =====================
-            #if save_customer:
-            #    if customer_mode == "新規顧客":
-            #        cid = next_id(customer_df, "顧客_ID", "C")
-            #        st.session_state.current_customer_id = cid
-            #    else:
-            #        cid = st.session_state.get("current_customer_id", "")
-    if save_customer:
-        cid = st.session_state.get("current_customer_id")
-
-        if not cid:
-            st.error("顧客IDが取得できません")
-            st.stop()
-
-        payload = {
-            "mode": "customer_only",
-            "顧客_ID": cid,
-            "氏名": name,
-            "ニックネーム": nick,
-            "住所": addr,
-            "電話番号": tel,
-            "生年月日": date_to_str(birth),
-            "勤務先・業種": work,
-            "タバコ_YN": smoke,
-            "タバコ_銘柄": brand,
-            "好き": like,
-            "苦手": dislike,
-            "初回来店日": date_to_str(first),
-            "紹介者_氏名": intro,
-            "合番_氏名": pair,
-            "メモ_顧客": memocus
-        }
-
-        with st.spinner("保存中です…"):
-            requests.post(GAS_POST_URL, json=payload, timeout=30)
-
-        # ★ ここで必ずキャッシュ破棄＋再読込
-        st.cache_data.clear()
-        customer_df, visit_df = load_data()
-            
-        st.session_state.current_customer_id = cid
-        st.session_state.loaded_customer_id = cid
-
-        st.success("顧客情報を保存しました")
-
-    # =====================
     # 来店情報の保存
     # =====================
-            #if save_visit:
-            #    cid = st.session_state.get("current_customer_id", "")
     if save_visit:
-        cid = st.session_state.get("current_customer_id")
-
-        if not cid:
-            st.error("顧客が確定していません")
-            st.stop()
+        cid = st.session_state.get("current_customer_id", "")
 
         if visit_mode == "新規来店":
             vid = next_id(visit_df, "来店履歴_ID", "V")
@@ -498,9 +488,9 @@ if menu == "顧客・来店入力":
             vid = st.session_state.get("selected_visit_id")
 
         if not vid:
-            st.error("編集する来店履歴が特定できません")
+            st.error("編集する来店履歴が選択されていません")
             st.stop()
-   
+    
         payload = {
             "mode": "visit_only",
             "来店履歴_ID": vid,
@@ -513,36 +503,30 @@ if menu == "顧客・来店入力":
             "同伴_氏名": accompany,
             "同時来店_氏名": same,
             "イベント名": event,
+            "メモ_来店": memovis,
             "売上金額": sales,
-            "メモ_来店": memovis
+            "領収日": date_to_str(receipt_date),
         }
 
         with st.spinner("保存中です…"):
             requests.post(GAS_POST_URL, json=payload, timeout=30)
 
+        # 来店保存後
+        st.session_state.after_visit_save = True
+        st.success("来店情報を保存しました")
+
+        # キャッシュのクリア
         st.cache_data.clear()
-        customer_df, visit_df = load_data()
+        visit_df = load_data()
 
         # 保存後は編集モードを解除するだけ
         st.session_state.pop("selected_visit_id", None)
         st.session_state.pop("visit_edit_select", None)
-
-        # 来店保存後
-        if visit_mode == "新規来店":
-            st.session_state.after_visit_save = True
-
-        st.success("来店情報を保存しました")
-        if visit_mode == "新規来店":
-            st.rerun()
-
         
         # --- 日付カラムを文字列に変換 ---
-        for col in ["生年月日", "初回来店日"]:
-            if col in customer_df.columns:
-                customer_df[col] = customer_df[col].astype(str)
-
-        if "来店日" in visit_df.columns:
-            visit_df["来店日"] = visit_df["来店日"].astype(str)
+        for col in ["来店日", "領収日"]:
+            if col in visit_df.columns:
+                visit_df[col] = visit_df[col].astype(str)
        
 # ==========================
 # 顧客別来店履歴（氏名で選択）
@@ -628,7 +612,7 @@ elif menu == "売上分析":
     df = visit_df.copy()
     df["来店日"] = pd.to_datetime(df["来店日"])
 
-    # 日別売上
+    # 日別売上-----
     st.subheader("日別売上")
 
     df["日付"] = df["来店日"].dt.date
@@ -645,7 +629,7 @@ elif menu == "売上分析":
     else:
         st.info("日付を選択してください")
 
-    # 月別売上
+    # 月別売上-----
     st.subheader("月別売上")
 
     df["年月"] = df["来店日"].dt.to_period("M").astype(str)
@@ -661,7 +645,7 @@ elif menu == "売上分析":
     else:
         st.info("年月を選択してください")
 
-    # 担当別売上
+    # 担当別売上-----
     st.subheader("担当者別売上")
 
     staff_sales = (df.groupby("担当_氏名")["売上金額"].sum().reset_index())
