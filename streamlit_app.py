@@ -493,11 +493,11 @@ elif menu == "来店情報入力":
     if search_name:
         import re
         search_words = re.split(r"\s+", search_name.strip())
-        mask = pd.Series(False, index=customer_df.index)
+        mask = pd.Series(False, index=active_customer_df.index)
         for w in search_words:
             if w:
                 mask |= search_col.str.contains(w, case=False, na=False)
-        filtered_df = customer_df[mask]
+        filtered_df = active_customer_df[mask]
     else:
         filtered_df = active_customer_df
 
