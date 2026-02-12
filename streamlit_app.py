@@ -12,6 +12,7 @@ textarea {
 </style>
 """, unsafe_allow_html=True)
 
+import time
 import requests
 from datetime import date, datetime
 import pandas as pd
@@ -239,9 +240,15 @@ if menu == "顧客情報入力":
         st.header("顧客情報入力")
 
     # ★ フラッシュメッセージ表示エリア
-    if st.session_state.get("flash_message"):
+    if "flash_message" in st.session_state:
         st.success(st.session_state.flash_message)
-        del st.session_state.flash_message
+
+        if "flash_timer" not in st.session_state:
+            st.session_state.flash_timer = time.time()
+
+        if time.time() - st.session_state.flash_timer > 3:
+            del st.session_state.flash_message
+            del st.session_state.flash_timer
 
     prev = st.session_state.get("prev_customer_mode")
 
@@ -472,9 +479,16 @@ elif menu == "来店情報入力":
     )
 
     # ★ フラッシュメッセージ表示エリア
-    if st.session_state.get("flash_message"):
+    if "flash_message" in st.session_state:
         st.success(st.session_state.flash_message)
-        del st.session_state.flash_message
+
+        if "flash_timer" not in st.session_state:
+            st.session_state.flash_timer = time.time()
+
+        if time.time() - st.session_state.flash_timer > 3:
+            del st.session_state.flash_message
+            del st.session_state.flash_timer
+
         
     # ★ 顧客IDは必ず session_state から取得（未選択時は ""）
     cid = st.session_state.get("current_customer_id", "")    
