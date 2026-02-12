@@ -238,6 +238,11 @@ if menu == "顧客情報入力":
     else:
         st.header("顧客情報入力")
 
+    # ★ フラッシュメッセージ表示エリア
+    if st.session_state.get("flash_message"):
+        st.success(st.session_state.flash_message)
+        del st.session_state.flash_message
+
     prev = st.session_state.get("prev_customer_mode")
 
     if prev != customer_mode:
@@ -387,7 +392,7 @@ if menu == "顧客情報入力":
         }
         requests.post(GAS_POST_URL, json=payload)
         st.cache_data.clear()
-        st.success("削除しました")
+        st.session_state.flash_message = "削除しました ✅"
         st.rerun()
 
     if restore_btn and is_deleted:
@@ -398,7 +403,7 @@ if menu == "顧客情報入力":
         }
         requests.post(GAS_POST_URL, json=payload)
         st.cache_data.clear()
-        st.success("復元しました")
+        st.session_state.flash_message = "復元しました ✅"
         st.rerun()
       
     # =====================
@@ -440,7 +445,7 @@ if menu == "顧客情報入力":
         # ★ ここで必ずキャッシュ破棄＋再読込
         st.cache_data.clear()         
         st.session_state.loaded_customer_id = cid
-        st.success("顧客情報を保存しました")
+        st.session_state.flash_message = "保存しました ✅"
         st.rerun()
 
 # =====================
@@ -454,10 +459,10 @@ elif menu == "来店情報入力":
     if "visit_mode" not in st.session_state:
         st.session_state.visit_mode = "新規来店"
 
-    # 保存後は新規モードに戻す
-    if st.session_state.get("after_visit_save"):
-        st.session_state.visit_mode = "新規来店"
-        st.session_state.pop("after_visit_save", None)
+    # 保存後は編集状態を維持
+    if st.session_state.get("return_to_edit"):
+        st.session_state.visit_mode = "既存来店履歴を編集"
+        del st.session_state.return_to_edit
 
     # --- radio（1回だけ） ---
     visit_mode = st.radio(
@@ -466,6 +471,11 @@ elif menu == "来店情報入力":
         key="visit_mode"
     )
 
+    # ★ フラッシュメッセージ表示エリア
+    if st.session_state.get("flash_message"):
+        st.success(st.session_state.flash_message)
+        del st.session_state.flash_message
+        
     # ★ 顧客IDは必ず session_state から取得（未選択時は ""）
     cid = st.session_state.get("current_customer_id", "")    
     
@@ -502,15 +512,6 @@ elif menu == "来店情報入力":
         st.session_state.current_customer_id = cid     
 
     vid = st.session_state.get("current_visit_id", "")
-
-     # --- visit_mode の初期化（radioより前！）---
-    if "visit_mode" not in st.session_state:
-        st.session_state.visit_mode = "新規来店"        
-
-    # ★★★ radio を描画する前で制御 ★★★
-    if st.session_state.get("after_visit_save"):
-        st.session_state.visit_mode = "新規来店"
-        st.session_state.pop("after_visit_save", None)
 
     # =====================
     # 来店情報（事前定義）
@@ -579,17 +580,18 @@ elif menu == "来店情報入力":
                         unsafe_allow_html=True
                     )
 
-                # session_state に反映
-                for key, (col, default) in VISIT_STATE_MAP.items():
-                    val = visit_row.get(col, default)
-                    if isinstance(default, date):
-                        val = safe_date(val)
-                    st.session_state[key] = val
+                # ★ 違う来店IDを選んだ時だけ初期化
+                if st.session_state.get("loaded_visit_id") != vid:
+
+                    for key, (col, default) in VISIT_STATE_MAP.items():
+                        val = visit_row.get(col, default)
+                        if isinstance(default, date):
+                            val = safe_date(val)
+                        st.session_state[key] = val
+
+                    st.session_state.loaded_visit_id = vid
 
                 is_deleted = str(visit_row.get("削除", "0")) == "1"
-
-                # ★ 初期化フラグを明示的に消す
-                st.session_state.pop("visit_initialized", None)
 
     # --- 新規来店 初期化 ---
     init_key = f"visit_initialized_for_{cid}"
@@ -643,7 +645,7 @@ elif menu == "来店情報入力":
 
             requests.post(GAS_POST_URL, json=payload)
             st.cache_data.clear()
-            st.success("削除しました")
+            st.session_state.flash_message = "削除しました ✅"
             st.rerun()
 
     if restore_btn and is_deleted:
@@ -653,7 +655,7 @@ elif menu == "来店情報入力":
         }
         requests.post(GAS_POST_URL, json=payload)
         st.cache_data.clear()
-        st.success("復元しました")
+        st.session_state.flash_message = "復元しました ✅"
         st.rerun()
             
     def date_to_str(d):
@@ -696,7 +698,7 @@ elif menu == "来店情報入力":
             "顧客_ID": cid,
             "削除": "0"
         }
-
+    
         with st.spinner("保存中です…"):
             requests.post(GAS_POST_URL, json=payload, timeout=30)
 
@@ -709,10 +711,14 @@ elif menu == "来店情報入力":
         st.session_state.after_visit_save = True
         st.cache_data.clear()
 
+        st.session_state.selected_visit_id = vid
+
         if visit_mode == "新規来店":
-            st.success("保存しました")
+            st.session_state.flash_message = "保存しました ✅"
         else:
-            st.success("更新しました")
+            st.session_state.flash_message = "更新しました ✅"
+
+        st.session_state.return_to_edit = True
 
         st.rerun()
 
