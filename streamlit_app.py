@@ -199,6 +199,7 @@ if menu_changed:
     st.session_state.pop("selected_visit_id", None)
     st.session_state.pop("search_customer_name", None)
     st.session_state.pop("search_visit_name", None)
+    st.session_state.customer_mode_radio = "新規顧客"
 
     # ★ キャッシュだけクリア
     st.cache_data.clear()
@@ -210,6 +211,9 @@ if menu_changed:
 # 顧客情報入力
 # =====================
 if menu == "顧客情報入力":
+
+    if "customer_mode_radio" not in st.session_state:
+        st.session_state.customer_mode_radio = "新規顧客"
 
     # --- 顧客区分（radioは1回だけ！） ---
     customer_mode = st.radio(
