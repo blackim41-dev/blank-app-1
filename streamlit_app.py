@@ -780,7 +780,7 @@ elif menu == "顧客別来店履歴":
             target["No"] = range(1, len(target) + 1)
 
             # 表示は新しい順
-            target = target.sort_values("来店日", ascending=False)
+            target = target.sort_values(["来店日","No"], ascending=[False,False])
 
             # 時刻を消す
             target["来店日"] = target["来店日"].dt.date
