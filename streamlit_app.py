@@ -12,7 +12,6 @@ textarea {
 </style>
 """, unsafe_allow_html=True)
 
-import time
 import requests
 from datetime import date, datetime
 import pandas as pd
@@ -215,10 +214,15 @@ if menu == "顧客情報入力":
     # --- 顧客区分（radioは1回だけ！） ---
     customer_mode = st.radio(
         "顧客区分",
-        ["既存顧客", "新規顧客"],
-        index=1,
+        ["新規顧客","既存顧客"],
+        index=0,
         key="customer_mode_radio"
     )
+
+    # 顧客モード変更時はメッセージ消す
+    if st.session_state.get("last_customer_mode") != customer_mode:
+        st.session_state.pop("flash_message", None)
+    st.session_state.last_customer_mode = customer_mode
 
     cid = st.session_state.get("current_customer_id", "")
 
@@ -238,17 +242,6 @@ if menu == "顧客情報入力":
         )
     else:
         st.header("顧客情報入力")
-
-    # ★ フラッシュメッセージ表示エリア
-    if "flash_message" in st.session_state:
-        st.success(st.session_state.flash_message)
-
-        if "flash_timer" not in st.session_state:
-            st.session_state.flash_timer = time.time()
-
-        if time.time() - st.session_state.flash_timer > 3:
-            del st.session_state.flash_message
-            del st.session_state.flash_timer
 
     prev = st.session_state.get("prev_customer_mode")
 
@@ -391,6 +384,10 @@ if menu == "顧客情報入力":
     delete_btn = st.button("顧客情報_削除", disabled=is_deleted)
     restore_btn = st.button("顧客情報_復元", disabled=not is_deleted)
 
+    # 保存メッセージ表示
+    if "flash_message" in st.session_state:
+        st.success(st.session_state.flash_message)
+
     if delete_btn and not is_deleted:
         payload = {
             "mode": "customer_delete",
@@ -478,18 +475,11 @@ elif menu == "来店情報入力":
         key="visit_mode"
     )
 
-    # ★ フラッシュメッセージ表示エリア
-    if "flash_message" in st.session_state:
-        st.success(st.session_state.flash_message)
+    # 来店モード変更時はメッセージ消す
+    if st.session_state.get("last_visit_mode") != visit_mode:
+        st.session_state.pop("flash_message", None)
+    st.session_state.last_visit_mode = visit_mode
 
-        if "flash_timer" not in st.session_state:
-            st.session_state.flash_timer = time.time()
-
-        if time.time() - st.session_state.flash_timer > 3:
-            del st.session_state.flash_message
-            del st.session_state.flash_timer
-
-        
     # ★ 顧客IDは必ず session_state から取得（未選択時は ""）
     cid = st.session_state.get("current_customer_id", "")    
     
@@ -644,6 +634,10 @@ elif menu == "来店情報入力":
     delete_btn = st.button("来店情報_削除", disabled= is_deleted)
     restore_btn = st.button("来店情報_復元", disabled=not is_deleted)
 
+    # 保存メッセージ表示
+    if "flash_message" in st.session_state:
+        st.success(st.session_state.flash_message)
+
     if visit_mode == "既存来店履歴を編集" and vid:
         if delete_btn:
             vid = st.session_state.get("selected_visit_id")
@@ -731,8 +725,7 @@ elif menu == "来店情報入力":
             st.session_state.flash_message = "保存しました ✅"
         else:
             st.session_state.flash_message = "更新しました ✅"
-
-        st.session_state.return_to_edit = True
+            st.session_state.return_to_edit = True
 
         st.rerun()
 
