@@ -1,11 +1,27 @@
 import streamlit as st
 st.set_page_config(page_title="顧客・来店管理", layout="wide")
+
 st.markdown("""
 <style>
+
+/* selectbox 高さ */
 div[data-baseweb="select"] > div {
-    min-height: 80px;
-    font-size: 18px;
+    min-height: 90px !important;
+    align-items: flex-start !important;
 }
+
+/* 表示テキスト全体に折り返し強制 */
+div[data-baseweb="select"] * {
+    white-space: normal !important;
+    word-break: break-word !important;
+}
+
+/* ドロップダウン内 */
+ul[role="listbox"] li {
+    white-space: normal !important;
+    word-break: break-word !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
