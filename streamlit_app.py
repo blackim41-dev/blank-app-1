@@ -1,16 +1,5 @@
 import streamlit as st
 st.set_page_config(page_title="顧客・来店管理", layout="wide")
-st.markdown("""
-<style>
-textarea {
-  font-size: 16px !important;
-  min-height: 80px !important;
-  max-height: 200px !important;
-  overflow-y: auto !important;
-  width: 100% !important;
-}
-</style>
-""", unsafe_allow_html=True)
 
 import requests
 from datetime import date, datetime
@@ -352,9 +341,9 @@ if menu == "顧客情報入力":
     col1, col2 = st.columns(2)
 
     with col1:
-        name = st.text_area("氏名", key="input_name", disabled=is_deleted)
+        name = st.text_area("氏名", key="input_name",height=60, disabled=is_deleted)
         nick = st.text_input("ニックネーム", key="input_nick", disabled=is_deleted)
-        addr = st.text_area("住所", key="input_addr", disabled=is_deleted)
+        addr = st.text_area("住所", key="input_addr",height=60, disabled=is_deleted)
         tel = st.text_input("電話番号", key="input_tel", disabled=is_deleted)
         birth = st.date_input(
             "生年月日",
@@ -377,7 +366,7 @@ if menu == "顧客情報入力":
             disabled=is_deleted
         )
         intro = st.text_input("紹介者_氏名", key="input_intro_name", disabled=is_deleted)
-        memo_cus = st.text_area("メモ_顧客", key="input_memo_cus", disabled=is_deleted)
+        memo_cus = st.text_area("メモ_顧客", key="input_memo_cus",height=60, disabled=is_deleted)
 
     disabled=is_deleted
 
@@ -625,14 +614,14 @@ elif menu == "来店情報入力":
         accompany = st.text_input("同伴_氏名", key="input_accompany", disabled=is_deleted)
         staff = st.text_input("担当_氏名", key="input_staff", disabled=is_deleted)
         ext = st.number_input("延長回数", min_value=0, max_value=10, key="input_ext", disabled=is_deleted)
-        keep = st.text_area("キープ銘柄", key="input_keep", disabled=is_deleted)
-        same = st.text_area("同時来店_氏名", key="input_same", disabled=is_deleted)
+        keep = st.text_area("キープ銘柄", key="input_keep",height=60, disabled=is_deleted)
+        same = st.text_area("同時来店_氏名", key="input_same",height=60, disabled=is_deleted)
 
     with col2:
-        preget = st.text_area("プレゼント_受", key="input_preget", disabled=is_deleted)
-        pre = st.text_area("プレゼント_渡", key="input_pre", disabled=is_deleted)
+        preget = st.text_area("プレゼント_受", key="input_preget",height=60, disabled=is_deleted)
+        pre = st.text_area("プレゼント_渡", key="input_pre",height=60, disabled=is_deleted)
         event = st.text_input("イベント名", key="input_event", disabled=is_deleted)
-        memovis = st.text_area("メモ_来店", key="input_memo_vis", disabled=is_deleted) 
+        memovis = st.text_area("メモ_来店", key="input_memo_vis",height=60, disabled=is_deleted) 
 
     save_visit = st.button("来店情報_保存", disabled= is_deleted)
     delete_btn = st.button("来店情報_削除", disabled= is_deleted)
