@@ -1,5 +1,13 @@
 import streamlit as st
 st.set_page_config(page_title="顧客・来店管理", layout="wide")
+st.markdown("""
+<style>
+div[data-baseweb="select"] > div {
+    min-height: 60px;
+    font-size: 18px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 import requests
 from datetime import date, datetime
@@ -252,7 +260,7 @@ if menu == "顧客情報入力":
     row = {}
 
     if customer_mode == "既存顧客" and not customer_df.empty:
-        search_name = st.text_input("氏名・ニックネーム検索（部分一致：空白を挟んで入力で複数検索可）", "")
+        search_name = st.text_area("氏名・ニックネーム検索（部分一致：空白を挟んで入力で複数検索可）", "")
         search_col = customer_df["氏名"].fillna("") + customer_df["ニックネーム"].fillna("")
 
         if search_name:
@@ -476,7 +484,7 @@ elif menu == "来店情報入力":
     # ★ 顧客IDは必ず session_state から取得（未選択時は ""）
     cid = st.session_state.get("current_customer_id", "")    
     
-    search_name = st.text_input("氏名・ニックネーム検索（部分一致：空白を挟んで入力で複数検索可）", "")
+    search_name = st.text_area("氏名・ニックネーム検索（部分一致：空白を挟んで入力で複数検索可）", "")
     search_col = active_customer_df["氏名"].fillna("") + active_customer_df["ニックネーム"].fillna("")
 
     if search_name:
@@ -729,7 +737,7 @@ elif menu == "顧客別来店履歴":
     st.header("顧客別来店履歴")
 
     # ① 検索ボックス（常に定義するのが重要）
-    search_name = st.text_input("氏名・ニックネーム検索（部分一致：空白を挟んで入力で複数検索可）",key="search_customer_name")
+    search_name = st.text_area("氏名・ニックネーム検索（部分一致：空白を挟んで入力で複数検索可）",key="search_customer_name")
     search_col = active_customer_df["氏名"].fillna("") + active_customer_df["ニックネーム"].fillna("")
 
     # ② 検索結果で顧客を絞り込む
