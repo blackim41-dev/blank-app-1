@@ -3,7 +3,7 @@ st.set_page_config(page_title="顧客・来店管理", layout="wide")
 st.markdown("""
 <style>
 div[data-baseweb="select"] > div {
-    min-height: 60px;
+    min-height: 80px;
     font-size: 18px;
 }
 </style>
