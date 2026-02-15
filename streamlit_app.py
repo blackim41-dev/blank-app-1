@@ -352,9 +352,9 @@ if menu == "顧客情報入力":
     col1, col2 = st.columns(2)
 
     with col1:
-        name = st.text_input("氏名", key="input_name", disabled=is_deleted)
+        name = st.text_area("氏名", key="input_name", disabled=is_deleted)
         nick = st.text_input("ニックネーム", key="input_nick", disabled=is_deleted)
-        addr = st.text_input("住所", key="input_addr", disabled=is_deleted)
+        addr = st.text_area("住所", key="input_addr", disabled=is_deleted)
         tel = st.text_input("電話番号", key="input_tel", disabled=is_deleted)
         birth = st.date_input(
             "生年月日",
@@ -625,8 +625,8 @@ elif menu == "来店情報入力":
         accompany = st.text_input("同伴_氏名", key="input_accompany", disabled=is_deleted)
         staff = st.text_input("担当_氏名", key="input_staff", disabled=is_deleted)
         ext = st.number_input("延長回数", min_value=0, max_value=10, key="input_ext", disabled=is_deleted)
-        keep = st.text_input("キープ銘柄", key="input_keep", disabled=is_deleted)
-        same = st.text_input("同時来店_氏名", key="input_same", disabled=is_deleted)
+        keep = st.text_area("キープ銘柄", key="input_keep", disabled=is_deleted)
+        same = st.text_area("同時来店_氏名", key="input_same", disabled=is_deleted)
 
     with col2:
         preget = st.text_area("プレゼント_受", key="input_preget", disabled=is_deleted)
