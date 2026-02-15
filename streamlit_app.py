@@ -618,8 +618,8 @@ elif menu == "来店情報入力":
         same = st.text_area("同時来店_氏名", key="input_same",height=60, disabled=is_deleted)
 
     with col2:
-        preget = st.text_area("プレゼント_受", key="input_preget",height=60, disabled=is_deleted)
-        pre = st.text_area("プレゼント_渡", key="input_pre",height=60, disabled=is_deleted)
+        preget = st.text_input("プレゼント_受", key="input_preget", disabled=is_deleted)
+        pre = st.text_input("プレゼント_渡", key="input_pre", disabled=is_deleted)
         event = st.text_input("イベント名", key="input_event", disabled=is_deleted)
         memovis = st.text_area("メモ_来店", key="input_memo_vis",height=60, disabled=is_deleted) 
 
