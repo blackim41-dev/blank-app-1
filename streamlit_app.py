@@ -366,9 +366,9 @@ if menu == "顧客情報入力":
 
     with col1:
         name = st.text_area("氏名", key="input_name",height=60, disabled=is_deleted)
-        nick = st.text_input("ニックネーム", key="input_nick", disabled=is_deleted)
+        nick = st.text_area("ニックネーム", key="input_nick",height=60, disabled=is_deleted)
         addr = st.text_area("住所", key="input_addr",height=60, disabled=is_deleted)
-        tel = st.text_input("電話番号", key="input_tel", disabled=is_deleted)
+        tel = st.text_area("電話番号", key="input_tel",height=60, disabled=is_deleted)
         birth = st.date_input(
             "生年月日",
             min_value=date(1900, 1, 1),
@@ -376,12 +376,12 @@ if menu == "顧客情報入力":
             key="input_birth",
             disabled=is_deleted
         )
-        work = st.text_input("勤務先・業種", key="input_job", disabled=is_deleted)
+        work = st.text_area("勤務先・業種", key="input_job",height=60, disabled=is_deleted)
 
     with col2:
-        brand = st.text_input("タバコ_銘柄", key="input_brand", disabled=is_deleted)
-        like = st.text_input("好き", key="input_like", disabled=is_deleted)
-        dislike = st.text_input("苦手", key="input_dislike", disabled=is_deleted)
+        brand = st.text_area("タバコ_銘柄", key="input_brand",height=60, disabled=is_deleted)
+        like = st.text_area("好き", key="input_like",height=60, disabled=is_deleted)
+        dislike = st.text_area("苦手", key="input_dislike",height=60, disabled=is_deleted)
         first = st.date_input(
             "初回来店日",
             min_value=date(2000, 1, 1),
@@ -389,7 +389,7 @@ if menu == "顧客情報入力":
             key="input_first_visit", 
             disabled=is_deleted
         )
-        intro = st.text_input("紹介者_氏名", key="input_intro_name", disabled=is_deleted)
+        intro = st.text_area("紹介者_氏名", key="input_intro_name",height=60, disabled=is_deleted)
         memo_cus = st.text_area("メモ_顧客", key="input_memo_cus",height=60, disabled=is_deleted)
 
     disabled=is_deleted
@@ -635,16 +635,16 @@ elif menu == "来店情報入力":
 
     with col1:
         visit_date = st.date_input("来店日", key="input_visit_date", disabled=is_deleted)
-        accompany = st.text_input("同伴_氏名", key="input_accompany", disabled=is_deleted)
-        staff = st.text_input("担当_氏名", key="input_staff", disabled=is_deleted)
+        accompany = st.text_area("同伴_氏名", key="input_accompany",height=60, disabled=is_deleted)
+        staff = st.text_area("担当_氏名", key="input_staff",height=60, disabled=is_deleted)
         ext = st.number_input("延長回数", min_value=0, max_value=10, key="input_ext", disabled=is_deleted)
         keep = st.text_area("キープ銘柄", key="input_keep",height=60, disabled=is_deleted)
 
     with col2:
         same = st.text_area("同時来店_氏名", key="input_same",height=60, disabled=is_deleted)
-        preget = st.text_input("プレゼント_受", key="input_preget", disabled=is_deleted)
-        pre = st.text_input("プレゼント_渡", key="input_pre", disabled=is_deleted)
-        event = st.text_input("イベント名", key="input_event", disabled=is_deleted)
+        preget = st.text_area("プレゼント_受", key="input_preget",height=60, disabled=is_deleted)
+        pre = st.text_area("プレゼント_渡", key="input_pre",height=60, disabled=is_deleted)
+        event = st.text_area("イベント名", key="input_event",height=60, disabled=is_deleted)
         memovis = st.text_area("メモ_来店", key="input_memo_vis",height=60, disabled=is_deleted) 
 
     save_visit = st.button("来店情報_保存", disabled= is_deleted)
