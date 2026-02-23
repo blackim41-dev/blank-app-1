@@ -4,19 +4,23 @@ st.set_page_config(page_title="顧客・来店管理", layout="wide")
 st.markdown("""
 <style>
 
-/* selectbox 高さ */
+/* 高さ */
 div[data-baseweb="select"] > div {
+    height: 90px !important;
     min-height: 90px !important;
     align-items: flex-start !important;
+    padding-top: 8px !important;
 }
 
-/* 表示テキスト全体に折り返し強制 */
-div[data-baseweb="select"] * {
+/* ★選択済み表示部分を強制折り返し */
+div[data-baseweb="select"] div {
     white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
     word-break: break-word !important;
 }
 
-/* ドロップダウン内 */
+/* ★ドロップダウンの中も折り返し */
 ul[role="listbox"] li {
     white-space: normal !important;
     word-break: break-word !important;
@@ -185,7 +189,6 @@ def init_state_from_row(state_map, row):
     すでに存在するキーは触らない
     """
     for key, (col, default) in state_map.items():
-        if key not in st.session_state:
             val = row.get(col, default)
 
             # 日付だけ特別扱い
@@ -298,7 +301,8 @@ if menu == "顧客情報入力":
             name_labels.append(label)
             name_map[label] = r["顧客_ID"]
 
-        selected_label = st.selectbox("氏名・ニックネームを選択", name_labels, key="input_selected_customer_name")
+        selected_label = st.selectbox("氏名・ニックネームを選択",     
+            name_labels,key="customer_name_big_select_customer")
 
         if selected_label != "（未選択）":
             cid = name_map[selected_label]
@@ -341,11 +345,24 @@ if menu == "顧客情報入力":
     # 顧客情報（事前定義）
     # =====================
     if customer_mode == "新規顧客":
-        init_state_from_row(CUSTOMER_STATE_MAP, {})
+
+        init_key = "customer_initialized"
+
+        if st.session_state.get(init_key) != True:
+            for key in CUSTOMER_STATE_MAP:
+                st.session_state.pop(key, None)
+
+            init_state_from_row(CUSTOMER_STATE_MAP, {})
+            st.session_state[init_key] = True
+
         cid = next_id(customer_df, "顧客_ID", "C")
         st.session_state.current_customer_id = cid        
         is_deleted = False
+
     else:
+        # 既存顧客に切り替わったら初期化フラグ解除
+        st.session_state.pop("customer_initialized", None)
+
         # ★ 必ず session_state から
         cid = st.session_state.get("current_customer_id")
 
@@ -391,8 +408,6 @@ if menu == "顧客情報入力":
         )
         intro = st.text_area("紹介者_氏名", key="input_intro_name",height=60, disabled=is_deleted)
         memo_cus = st.text_area("メモ_顧客", key="input_memo_cus",height=60, disabled=is_deleted)
-
-    disabled=is_deleted
 
     # ==================
     # ボタン
@@ -492,10 +507,14 @@ elif menu == "来店情報入力":
         key="visit_mode"
     )
 
-    # 来店モード変更時はメッセージ消す
-    if st.session_state.get("last_visit_mode") != visit_mode:
+    # 初回用
+    if "last_visit_mode" not in st.session_state:
+        st.session_state.last_visit_mode = visit_mode
+
+    # モード変更検知
+    if st.session_state.last_visit_mode != visit_mode:
         st.session_state.pop("flash_message", None)
-    st.session_state.last_visit_mode = visit_mode
+        st.session_state.last_visit_mode = visit_mode
 
     # ★ 顧客IDは必ず session_state から取得（未選択時は ""）
     cid = st.session_state.get("current_customer_id", "")    
@@ -522,7 +541,8 @@ elif menu == "来店情報入力":
         name_labels.append(label)
         name_map[label] = r["顧客_ID"]
 
-    selected_label = st.selectbox("氏名・ニックネームを選択", name_labels, key="input_selected_customer_name")
+    selected_label = st.selectbox("氏名・ニックネームを選択",
+        name_labels, key="customer_name_big_select_visit")
 
     if selected_label != "（未選択）":
         cid = name_map[selected_label]
@@ -532,16 +552,18 @@ elif menu == "来店情報入力":
         cid = row["顧客_ID"]
         st.session_state.current_customer_id = cid     
 
-    vid = st.session_state.get("current_visit_id", "")
-
     # =====================
     # 来店情報（事前定義）
     # =====================  
-    # ★ 顧客IDは必ず session_state から取得（未選択時は ""）
-    vid = st.session_state.get("current_visit_id", "")    
+    vid = st.session_state.get("current_visit_id", "")
 
     if visit_mode == "既存来店履歴を編集":
-        target_visits = visit_df[visit_df["顧客_ID"] == cid]
+
+        if not cid:
+            st.info("先に顧客を選択してください")
+            st.stop()
+
+        target_visits = visit_df[visit_df["顧客_ID"] == cid].copy()
 
         visit_record = visit_df[visit_df["来店履歴_ID"] == st.session_state.get("selected_visit_id")]
 
@@ -562,16 +584,18 @@ elif menu == "来店情報入力":
 
             # --- 表示ラベル作成 ---
             visit_labels = target_visits.apply(
-                lambda r: f'{r["来店日_dt"].date()}（{get_weekday(r["来店日_dt"])}）{r["来店履歴_ID"]}',
+                lambda r: (
+                    f'{r["来店日_dt"].date()}（{get_weekday(r["来店日_dt"])}）{r["来店履歴_ID"]}'
+                    + "【削除済】" if str(r.get("削除","0"))=="1"
+                    else f'{r["来店日_dt"].date()}（{get_weekday(r["来店日_dt"])}）{r["来店履歴_ID"]}'
+                ),
                 axis=1
             )
 
             visit_map = dict(zip(visit_labels, target_visits["来店履歴_ID"]))
 
-            selected_label = st.selectbox(
-                "編集する来店履歴を選択",
-                ["（未選択）"] + visit_labels.tolist(),
-                key="visit_edit_select"
+            selected_label = st.selectbox("編集する来店履歴を選択",
+                ["（未選択）"] + visit_labels.tolist(),key="visit_edit_select"
             )
 
             if selected_label == "（未選択）":
@@ -606,8 +630,11 @@ elif menu == "来店情報入力":
 
                     for key, (col, default) in VISIT_STATE_MAP.items():
                         val = visit_row.get(col, default)
+
+                        # 日付はdate型に変更
                         if isinstance(default, date):
                             val = safe_date(val)
+                        # フォームのkeyと一致させる
                         st.session_state[key] = val
 
                     st.session_state.loaded_visit_id = vid
@@ -652,7 +679,7 @@ elif menu == "来店情報入力":
     restore_btn = st.button("来店情報_復元", disabled=not is_deleted)
 
     # 保存メッセージ表示
-    if "flash_message" in st.session_state:
+    if st.session_state.get("flash_message"):
         st.success(st.session_state.flash_message)
 
     if visit_mode == "既存来店履歴を編集" and vid:
@@ -789,40 +816,47 @@ elif menu == "顧客別来店履歴":
         name_labels.append(label)
         name_map[label] = cid
 
-    selected_label = st.selectbox("氏名・ニックネームで選択", name_labels,
-                                key="history_selected_customer_name")
+    selected_label = st.selectbox("氏名・ニックネームを選択", name_labels,
+        key="customer_name_big_select_history")
 
-    if selected_label == "（未選択）":
+    if not selected_label:
         st.info("顧客・ニックネームを選択してください")
     else:
+        if selected_label == "（未選択）":
+            st.info("顧客・ニックネームを選択してください")
+            st.stop()
+
         cid = name_map[selected_label]
 
-        target = active_visit_df[visit_df["顧客_ID"] == cid].copy()
+        target = active_visit_df[
+            active_visit_df["顧客_ID"] == cid
+        ].copy()
 
         if target.empty:
             st.warning("来店履歴がありません")
-        else:
-            # 日付を datetime に
-            target["来店日"] = pd.to_datetime(target["来店日"])
+            st.stop()
 
-            # 古い順で番号
-            target = target.sort_values("来店日", ascending=True)
-            target["No"] = range(1, len(target) + 1)
+        # 日付を datetime に
+        target["来店日"] = pd.to_datetime(target["来店日"], errors="coerce")
 
-            # 表示は新しい順
-            target = target.sort_values(["来店日","No"], ascending=[False,False])
+        # 古い順で番号
+        target = target.sort_values("来店日", ascending=True)
+        target["No"] = range(1, len(target) + 1)
 
-            # 時刻を消す
-            target["来店日"] = target["来店日"].dt.date
+        # 表示は新しい順
+        target = target.sort_values(["来店日", "No"], ascending=[False, False])
 
-            # 顧客ID・来店履歴ID・削除は消す
-            target = target.drop(columns=["顧客_ID", "来店履歴_ID","削除"], errors="ignore")
+        # 時刻を消す
+        target["来店日"] = target["来店日"].dt.date
 
-            # No を左に
-            cols = ["No"] + [c for c in target.columns if c != "No"]
-            target = target[cols]
+        # 不要列削除
+        target = target.drop(columns=["顧客_ID", "来店履歴_ID", "削除"], errors="ignore")
 
-            st.dataframe(target, hide_index=True)
+        # No を左に
+        cols = ["No"] + [c for c in target.columns if c != "No"]
+        target = target[cols]
+
+        st.dataframe(target, hide_index=True)
 
 # =====================
 # 日付別来店一覧
@@ -876,6 +910,9 @@ elif menu == "日付別来店一覧":
     cols = ["No", "氏名","ニックネーム"] + [c for c in target.columns if c not in ["No", "氏名","ニックネーム"]]
     target = target[cols]
 
+    # 表示は新しい順
+    target = target.sort_values(["No"], ascending=[False])
+    
     st.dataframe(target, hide_index=True)
 
 # =====================
